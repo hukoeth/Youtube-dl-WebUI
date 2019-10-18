@@ -28,7 +28,7 @@ return array(
    *
    * 'disableExtraction' => false
    */
-    'disableExtraction' => false,
+  'disableExtraction' => false,
   
   /**
    * Set the maximum allowed simultaneous download (i.e. instances
@@ -37,7 +37,7 @@ return array(
    *
    * 'max-dl' => 3
    */
-    'max_dl' => 3,
+  'max_dl' => 3,
    
   /**
    * Specify the tab to redirect to after submitting a download URL.
@@ -56,7 +56,7 @@ return array(
    * e.g.
    * 'outputFolder' => '/var/www/tubedl/download'
    */
-    'outputFolder' => '/var/www/tubedl/download',
+  'outputFolder' => '/var/www/tubedl/download',
   
   /**
    * The web accessible path to you download folder. This has to be a
@@ -70,6 +70,14 @@ return array(
   'downloadPath' => 'download',
   
   /**
+   * Specify the tab to redirect to after submitting a download URL.
+   * allowed values are: 'downloads','home','videos','music'
+   *
+   * 'redirectAfterSubmit' => 'downloads'
+   */
+  'redirectAfterSubmit' => 'downloads',
+  
+  /**
    * Specify the directory where youtube should log it's output to.
    * This has to be a full absolute path without a trailing slash.
    * The files created by youtube-dl are used to display the progress on the
@@ -77,9 +85,9 @@ return array(
    * Make sure that the user who is running the webserver has write access
    * to this directory.
    *
-   * 'logPath' => '/var/www/tubedl/logs'
+   * 'logPath' => '/var/www/tubedl/tmp'
    */
-  'logPath' => '/var/www/tubedl/logs',
+  'logPath' => '/var/www/tubedl/tmp',
   
   /**
    * If you the path you have set with logPath is accessible through your webserver,
@@ -103,12 +111,25 @@ return array(
   'youtubedlExe' => '/usr/bin/youtube-dl',
 
   /**
-   * Specify if .part files should be kept when cliking on Stop All on 
+   * Specify if .part files should be kept when cliking on Stop All on
    * the download status page.
    *
    * 'keepPartialFiles' => false
    */
   'keepPartialFiles' => false,
+
+  /**
+   * When the simultaneous download limit is reaches, new downloads
+   * will be queued. The queued downloads will be processed each
+   * time you access the website or if you setup a conjob calling
+   * index.php?cron.
+   * You can disable this by setting the following option to true.
+   * In that case you will get an error when trying to add more
+   * downloads after the simultaneous download limit has been reached.
+   *
+   * 'disableQueue' => false
+   */
+  'disableQueue' => false,
 
   /**
    * Specify if users can delete downloaded music and video files 

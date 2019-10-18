@@ -1,52 +1,35 @@
 <?php
 class Downloader
 {
-    private $urls = [];
-    private $audio_only = false;
+    private $dl_list = [];
     private $errors = [];
     private $download_path = "";
-    //private $dl_format = "-f best";
-    private $dl_format = "";
     private $config = [];
     
-    public function __construct($post, $audio_only, $dl_format, $audio_format)
+    public function __construct($dl_list)
     {
         $this->download_path = (new FileHandler())->get_downloads_folder();
         $this->config = $GLOBALS['config'];
-        $this->audio_only = $audio_only;
-        $this->audio_format = $audio_format;
-        $this->dl_format = $dl_format;
-        $this->urls = explode("||", $post);  //Each url separated by a double pipe sign
+        $this->dl_list = $dl_list;
       
-        if(!$this->check_requirements($audio_only)) {
+        if(!$this->check_requirements()) {
             return;
         }
       
-        foreach ($this->urls as $url) {
+        if (count($dl_list) > 0) {
+            foreach($dl_list as $onedownload) {
+                foreach(explode('||', $onedownload['url']) as $url) {
             if(!$this->is_valid_url($url)) {
                 $this->errors[] = "\"".$url."\" is not a valid url !";
             }
         }
-      
-        if(isset($this->errors) && count($this->errors) > 0) {
-            $_SESSION['errors'] = $this->errors;
-            return;
-        }
-      
-        if($this->config["max_dl"] == 0) {
-            $this->do_download();
-        }
-        elseif($this->config["max_dl"] > 0) {
-            if($this->background_jobs() >= 0 && $this->background_jobs() < $this->config["max_dl"]) {
-                $this->do_download();
-            } else {
-                $this->errors[] = "Simultaneous downloads limit reached !";
             }
-        }
       
         if(isset($this->errors) && count($this->errors) > 0) {
             $_SESSION['errors'] = $this->errors;
             return;
+        }
+                $this->do_download();
         }
     }
     
@@ -167,6 +150,48 @@ class Downloader
         return $bjs;
     }
     
+    public static function get_queued_jobs()
+    {
+        $qjs = [];
+        $queue_file = $GLOBALS['config']['logPath']."/dl_queue";
+        if (!file_exists($queue_file)) {
+            return $qjs;
+        }
+        $corrupt_queue = false;
+        $handle = fopen($queue_file, "r");
+        if ($handle) {
+            while (($line = fgets($handle)) !== false) {
+                if (trim($line) === "") {
+                    continue;
+                }
+                if (substr($line, 0, 7) !== "queueid") {
+                    $corrupt_queue = true;
+                    $break;
+                }
+                $url = substr($line, strpos($line,"=")+1);
+                $pid = substr($line, 0, strpos($line,"="));
+                $audio_only = true;
+                if (!explode(">", $url)[2] || trim(explode(">", $url)[2]) === "") {
+                    $audio_only = false;
+                }
+                
+                $qjs[] = array(
+                'pid' => json_encode($pid),
+                'url' => json_encode(explode(">", $url)[0]),
+                'dl_format' => json_encode(explode(">", $url)[1]),
+                'audio_only' => $audio_only,
+                'audio_format' => json_encode(explode(">", $url)[3])
+                );
+            }
+        }
+        fclose($handle);
+        if ($corrupt_queue) {
+            unlink($queue_file);
+            return [];
+        }
+        return $qjs;
+    }
+    
     public static function get_finished_background_jobs()
     {
         $bjs = [];
@@ -274,7 +299,7 @@ class Downloader
     public static function kill_them_all()
     {
         foreach(glob($GLOBALS['config']['logPath'].'/pid_*') as $file) {
-            $jobfile = $str_replace("pid_", "job_", $file);
+            $jobfile = str_replace("pid_", "job_", $file);
             $pos = strrpos($jobfile, "job_");
             $completed = substr_replace($jobfile, "ytdl_", $pos, strlen("job_"))."_cancelled";
             rename($jobfile, $completed);
@@ -354,7 +379,7 @@ class Downloader
         }
     }
     
-    private function check_requirements($audio_only)
+    private function check_requirements()
     {
         $this->check_outuput_folder();
       
@@ -396,21 +421,43 @@ class Downloader
     
     private function do_download()
     {
+        foreach ($this->dl_list as $onedownload) {
+            if($this->config["max_dl"] == -1) {
+                $this->addOneDownload($onedownload);
+            }
+            elseif($this->config["max_dl"] > 0) {
+                if($this->background_jobs() >= 0 && $this->background_jobs() < $this->config["max_dl"]) {
+                    $this->addOneDownload($onedownload);
+                } else {
+                    if ($this->config["disableQueue"]) {
+                        $this->errors[] = "Simultaneous downloads limit reached. ".$onedownload['url']." will not be downloaded.";
+                    } else {
+                        $this->addToQueue($onedownload);
+                    }
+                }
+            } else {
+                $this->errors[] = "The max_dl value in config.php is invalid.";
+            }
+        }
+    }
+    
+    public function addOneDownload($onedownload)
+    {
         $suffix = "";
         $cmd = $this->config['youtubedlExe'];
         $cmd .= " -o ".$this->download_path."/";
         $cmd .= escapeshellarg("%(title)s-%(uploader)s.%(ext)s");
-        $cmd .= " ".$this->dl_format;
+        $cmd .= " ".$onedownload['dl_format'];
       
-        if($this->audio_only) {
+        if($onedownload['audio_only']) {
             $cmd .= " -x";
-            $cmd .= " ".$this->audio_format;
+            $cmd .= " ".$onedownload['audio_format'];
             $suffix = "_a";
         }
         $fno = $this->getUniqueFileName("job_", $suffix, $this->config['logPath']."/");
         $fnp = str_replace("job_", "pid_", $fno);
         $urltext = "";
-        foreach($this->urls as $url) {
+        foreach(explode("||", $onedownload['url']) as $url) {
             $cmd .= " ".escapeshellarg($url);
             $urltext .= $url .",";
         }
@@ -423,5 +470,124 @@ class Downloader
         file_put_contents($this->config['logPath']."/".$fnp, $logcmd."\n", FILE_APPEND);
         file_put_contents($this->config['logPath']."/".$fnp, $urltext."\n", FILE_APPEND);
     }
+    
+    public function process_queue()
+    {
+        $queue_file = $this->config['logPath']."/dl_queue";
+        $currently_running = $this->background_jobs();
+        if (!file_exists($queue_file)) {
+            return;
+        }
+        if ($this->background_jobs() >= 0 && $this->background_jobs() >= $this->config["max_dl"]) {
+            return;
+        }
+        $remaining_urls = [];
+        $corrupt_queue = false;
+        $handle = fopen($queue_file, "r");
+        if ($handle) {
+            while (($line = fgets($handle)) !== false) {
+                if (trim($line) === "") {
+                    continue;
+                }
+                if (substr($line, 0, 7) !== "queueid") {
+                    $corrupt_queue = true;
+                    break;
+                }
+                $url = substr($line, strpos($line,"=")+1);
+                if (!$this->is_valid_url(explode(">", $url)[0])) {
+                    $this->errors[] = $url." is not a valid URL and was removed from the queue.";
+                } else {
+                    if ($currently_running >= 0 && $currently_running < $this->config["max_dl"]) {
+                        $this->dl_list[] =  array(
+                        'url' => explode(">", $url)[0],
+                        'dl_format' => explode(">", $url)[1],
+                        'audio_only' => explode(">", $url)[2],
+                        'audio_format' => explode(">", $url)[3]
+                        );
+                        $currently_running++;
+                    } else {
+                        $remaining_urls[] = $line;
+                    }
+                }
+            }
+        } else {
+            $this->errors[] = "Could not open queue file. Please check permissions.";
+        }
+        fclose($handle);
+        if ($corrupt_queue) {
+            unlink($queue_file);
+            $this->errors[] = "The queue file is corrupt and was deleted.";
+        }
+        $string_contents = "";
+        foreach ($remaining_urls as $oneline) {
+            $string_contents .= $oneline."\n";
+        }
+        file_put_contents($queue_file, $string_contents, LOCK_EX);
+        $this->do_download();
+        $_SESSION['errors'] = $this->errors;
+    }
+
+    public function addToQueue($onedownload)
+    {
+        $queue_file = $this->config['logPath']."/dl_queue";
+        $fcontent = "queueid".uniqid()."=".$onedownload['url'].">".$onedownload['dl_format'].">".$onedownload['audio_only'].">".$onedownload['audio_format']."\n";
+        if (file_exists($queue_file)) {
+            file_put_contents($queue_file, $fcontent, FILE_APPEND | LOCK_EX);
+        } else {
+            file_put_contents($queue_file, $fcontent, LOCK_EX);
+        }
+    }
+    
+    public function remove_queued_job($qid) {
+        $queue_file = $GLOBALS['config']['logPath']."/dl_queue";
+        if (!file_exists($queue_file)) {
+            return;
+        }
+        $remaining_urls = [];
+        $corrupt_queue = false;
+        $handle = fopen($queue_file, "r");
+        if ($handle) {
+            while (($line = fgets($handle)) !== false) {
+                if (trim($line) === "") {
+                    continue;
+                }
+                if (substr($line, 0, 7) !== "queueid") {
+                    $corrupt_queue = true;
+                    break;
+                }
+                $pid = substr($line, 0, strpos($line,"="));
+                if ($pid !== $qid) {
+                    $remaining_urls[] = $line;
+                }
+            }
+        } else {
+            $_SESSION['errors'] = "Could not open queue file. Please check permissions.";
+            return;
+        }
+        fclose($handle);
+        if ($corrupt_queue) {
+            unlink($queue_file);
+            $_SESSION['errors'] = "The queue file is corrupt and was deleted.";
+            return;
+        }
+        if (count($remaining_urls) === 0) {
+            unlink($queue_file);
+            return;
+        }
+        $string_content = "";
+        foreach ($remaining_urls as $oneline) {
+            $string_content .= $oneline."\n";
+        }
+        file_put_contents($queue_file, $string_content, LOCK_EX);
+    }
+    
+    public function remove_all_queued_jobs() {
+        $queue_file = $GLOBALS['config']['logPath']."/dl_queue";
+        if (!file_exists($queue_file)) {
+            return;
+        }
+        unlink($queue_file);
+    }
+
 }
 ?>

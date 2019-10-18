@@ -21,6 +21,12 @@ require_once 'class/FileHandler.php';
 $session = Session::getInstance();
 $file = new FileHandler;
   
+// Process the download queue unless it's disabled
+if (!$config['disableQueue']) {
+    $downloader = new Downloader([]);
+    $downloader->process_queue();
+}
+
 // Return JSON with all jobs currently running and jobs history
 if(isset($_GET['jobs'])) {
     $videofiles = $file->listVideos();
@@ -38,6 +44,25 @@ if(isset($_GET['jobs'])) {
     $jsonString = trim($jsonString, ",");
     $jsonString .= "],";
     
+    $jsonString .= "\"queue\": [";
+    if (!$config['disableQueue']) {
+        foreach(Downloader::get_queued_jobs() as $key) {
+            $dl_type = "video";
+            $dl_format = str_replace("-f ", "Format: ", $key['dl_format']);
+            if ($key['audio_only']) {
+              $dl_type = "audio";
+              $dl_format = str_replace("--audio-format ", "Format: ", $key['audio_format']);
+              $dl_format = str_replace(" --audio-quality ", ", Quality: ", $dl_format);
+            }
+            $jsonString .= "{ \"pid\": ".$key['pid'].", ";
+            $jsonString .= "\"url\": ".$key['url'].", ";
+            $jsonString .= "\"dl_format\": ".$dl_format.", ";
+            $jsonString .= "\"type\": \"".$dl_type."\"";
+            $jsonString .= "},";
+        }
+        $jsonString = trim($jsonString, ",");
+    }
+    $jsonString .= "],";
     $jsonString .= "\"finished\": [";
     foreach(Downloader::get_finished_background_jobs() as $key) {
         $jsonString .= "{ \"file\": ".$key['file'].", ";
@@ -54,7 +79,7 @@ if(isset($_GET['jobs'])) {
     $jsonString .= "\"videos\": [";
     foreach($videofiles as $f) {
         $deleteurl = "";
-        if ($config['allowFileDelete']) {
+        if (array_key_exists('allowFileDelete', $config) && $config['allowFileDelete']) {
             $deleteurl = '<a data-href="?delete='.urlencode($f["name"]).'&type=v" data-toggle="modal" data-target="#confirm-delete" class="btn btn-danger btn-xs">Delete</a>';
         }
         $fileurl = $f["name"];
@@ -73,7 +98,7 @@ if(isset($_GET['jobs'])) {
     $jsonString .= "\"music\": [";
     foreach($musicfiles as $f) {
         $deleteurl = "";
-        if ($config['allowFileDelete']) {
+        if (array_key_exists('allowFileDelete', $config) && $config['allowFileDelete']) {
             $deleteurl = '<a data-href="?delete='.urlencode($f["name"]).'&type=m" data-toggle="modal" data-target="#confirm-delete" class="btn btn-danger btn-xs">Delete</a>';
         }
         $fileurl = $f["name"];
@@ -89,12 +114,27 @@ if(isset($_GET['jobs'])) {
     $jsonString .= "],";
 
     $jsonString .= "\"logURL\": ".json_encode($config['logURL'])." }";
+    // If the paramter "cron" is set we don't want to do any output unless something's wrong
+    if(!isset($_GET['cron'])) {
     echo $jsonString;
+    }
+    die();
+}
+
+if(isset($_GET['cron'])) {
+    // If the paramter "cron" is set we don't want to do any output unless something's wrong
+    die();
+}
+  
+// Remove a queued item
+if(isset($_GET["removeQueued"])) {
+    Downloader::remove_queued_job($_GET["removeQueued"]);
+    header("Location: index.php#downloads");
     die();
 }
   
 // Delete a downloaded file from disk if allowed
-if(isset($_GET["delete"]) && $config['allowFileDelete']) {
+if(isset($_GET["delete"]) && array_key_exists('allowFileDelete', $config) && $config['allowFileDelete']) {
     $file->delete($_GET["delete"]);
     if ($_GET["type"] == "m") {
         header("Location: index.php#music");
@@ -117,10 +157,16 @@ if(isset($_GET['kill']) && !empty($_GET['kill'])) {
   
 // Clear download history
 if(isset($_GET['clear']) && !empty($_GET['clear'])) {
-    if ($_GET['clear'] === "recent") {
+    switch ($_GET['clear']) {
+        case "recent":
         Downloader::clear_finished();
-    } else {
+        break;
+        case "queue":
+            Downloader::remove_all_queued_jobs();
+        break;
+        default:
         Downloader::clear_one_finished($_GET['clear']);
+        break;
     }
     header("Location: index.php#downloads");
     die();
@@ -162,9 +208,16 @@ if(isset($_POST['urls']) && !empty($_POST['urls'])) {
         }
     }
     
-    $downloader = new Downloader($_POST['urls'], $audio_only, $dl_format, $audio_format);
+    $dl_list = [];
+    $dl_list[] = array(
+    'url' => $_POST['urls'],
+    'audio_only' => $audio_only,
+    'dl_format' => $dl_format,
+    'audio_format' => $audio_format
+    );
+    $downloader = new Downloader($dl_list);
     
-    if(!isset($_SESSION['errors'])) {
+    if(!isset($_SESSION['errors']) || count($_SESSION['errors']) === 0) {
         header("Location: index.php".$get_params."#".$config['redirectAfterSubmit']);
         die();
     }
@@ -196,7 +249,14 @@ if (isset($_GET['url'])) {
             $dl_format = "-f " . $_GET['format'];
         }
       
-        $downloader = new Downloader(urldecode($_GET['url']), $audio_only, $dl_format, $audio_format);
+        $dl_list = [];
+        $dl_list[] = array(
+        'url' => $_GET['url'],
+        'audio_only' => $audio_only,
+        'dl_format' => $dl_format,
+        'audio_format' => $audio_format
+        );
+        $downloader = new Downloader($dl_list);
      
         if(isset($_SESSION['errors']) && $_SESSION['errors'] > 0) {
             header("Location: index.php?submitstatus=error");

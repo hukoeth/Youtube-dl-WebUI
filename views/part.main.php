@@ -73,6 +73,24 @@
           </tbody>
         </table>
         <br /><br />
+<?php if(!$config['disableQueue']) : ?>
+        <h4>Queued</h4>
+        <table style="text-align: left;" class="table table-striped table-hover ">
+          <thead>
+            <tr>
+              <th style="height:35px;">URL</th>
+              <th style="width: 120px;">Format</th>
+              <th style="width: 120px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dlqueue">
+            <tr>
+              <td colspan="3">Getting queued downloads please wait...</td>
+            </tr>
+          </tbody>
+        </table>
+        <br /><br />
+<?php endif; ?>
         <h4>Recently Completed</h4>
         <table style="text-align: left;" class="table table-striped table-hover ">
           <thead>

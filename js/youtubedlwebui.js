@@ -45,6 +45,50 @@ function loadList()
                 $('#dlprogress').html(htmlString.join("\n"));
             }
     
+            arrayLength = data.queue.length;
+            if (arrayLength==0) {
+                $('#dlqueue').html("<tr><td colspan=\"3\">No queued downloads.</td></tr>");
+            } else {
+                var htmlString = [];
+                var liString = "";
+                $('#dlqueue').html("");
+                for (var i = 0; i < arrayLength; i++) {
+                    liString = "";
+                    liString = '<i class=\"fa fa-video-camera\"></i>';
+                    if (data.queue[i].type == "audio") {
+                        liString = '<i class=\"fa fa-music\"></i>';
+                    }
+                    htmlString.push("<tr>");       
+                    htmlString.push("<td style=\"vertical-align: middle;\">");
+                    var urls = data.queue[i].url.split(",");
+                    var urlcount = urls.length;
+                    for (var j = 0; j < urlcount; j++) {
+                        htmlString.push("<br /><a href=\""+urls[j]+"\">"+liString+" "+urls[j]+"</a>");
+                    }
+                    htmlString.push("</td>");
+                    htmlString.push("<td style=\"vertical-align: middle;\">"+data.queue[i].dl_format+"</td>");
+                    htmlString.push("<td style=\"vertical-align: middle;\">");
+                    htmlString.push("<div class=\"btn-group\">");
+                    var buttonWidth = "160px;";
+                    htmlString.push("<a style=\"width: 160px\" data-href=\"?removeQueued="+data.queue[i].pid+"\" data-toggle=\"modal\" class=\"btn btn-danger btn-xs\" data-target=\"#confirm-delete\">Remove</a>");
+                    htmlString.push("</div>");
+                    htmlString.push("</td>");
+                    htmlString.push("</tr>");       
+                }
+                htmlString.push("<tr>");
+                htmlString.push("<td></td>");
+                htmlString.push("<td></td>");
+                htmlString.push("<td>");
+                htmlString.push("<div class=\"btn-group\">");
+                htmlString.push("<button id=\"clearallbutton\" style=\"width: 160px;\" class=\"btn btn-danger btn-xs\" data-href=\"?clear=queue\" data-toggle=\"modal\" data-target=\"#confirm-delete\">");
+                htmlString.push("Remove All");
+                htmlString.push("</button>");
+                htmlString.push("</div>");
+                htmlString.push("</td>");
+                htmlString.push("</tr>");
+                $('#dlqueue').html(htmlString.join("\n"));
+            }
+            
             arrayLength = data.finished.length;
             if (arrayLength==0) {
                 $('#dlcompleted').html("<tr><td colspan=\"4\">No completed downloads on record.</td></tr>");
