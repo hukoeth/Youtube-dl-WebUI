@@ -93,26 +93,28 @@ class Downloader
                 }
                 if ($handle) {
                     while (($line = fgets($handle)) !== false) {
-                        if (strpos($line, '[download] Downloading') !== false) {
-                            $listpos = "(".substr($line, 29).")";
-                        }
-                        if (strpos($line, '[download] Downloading playlist:') !== false) {
-                            $playlist = substr($line, 33)."<br />";
-                        }
-                        if (trim($line) != "") {
-                            $lastline = $line;
-                        }
-                        $verylastline = $line;
-                        if (!$siteset) {
-                            $siteset = true;
-                            $site = explode(" ", $line)[0];
-                            $site = str_replace("[", "", $site);
-                            $site = str_replace("]", "", $site);
-                            $site = ucfirst($site);
-                        }
-                        if (strpos($line, 'Destination') !== false) {
-                            $pos = strrpos($line, '/');
-                            $filename = $pos === false ? $line : substr($line, $pos + 1);
+                        if (strpos($line, '[debug] ') === false) {
+                            if (strpos($line, '[download] Downloading') !== false) {
+                                $listpos = "(".substr($line, 29).")";
+                            }
+                            if (strpos($line, '[download] Downloading playlist:') !== false) {
+                                $playlist = substr($line, 33)."<br />";
+                            }
+                            if (trim($line) != "") {
+                                $lastline = $line;
+                            }
+                            $verylastline = $line;
+                            if ( !$siteset) {
+                                $siteset = true;
+                                $site = explode(" ", $line)[0];
+                                $site = str_replace("[", "", $site);
+                                $site = str_replace("]", "", $site);
+                                $site = ucfirst($site);
+                            }
+                            if (strpos($line, 'Destination') !== false) {
+                                $pos = strrpos($line, '/');
+                                $filename = $pos === false ? $line : substr($line, $pos + 1);
+                            }
                         }
                     }
                     fclose($handle);
@@ -214,33 +216,36 @@ class Downloader
                 if ($handle) {
                     $jobstatus = "Completed";
                     while (($line = fgets($handle)) !== false) {
-                        if (strpos($line, '[download] Downloading') !== false) {
-                            $listpos = substr($line, 29);
-                            $listpos = trim(substr($listpos, strpos($listpos, " of")+3));
-                        }
-                        if (strpos($line, '[download] Downloading playlist:') !== false) {
-                            $playlist = substr($line, 33);
-                        }
-                        $verylastline = $line;
-                        if (!$siteset) {
-                            $siteset = true;
-                            $site = explode(" ", $line)[0];
-                            $site = str_replace("[", "", $site);
-                            $site = str_replace("]", "", $site);
-                            $site = ucfirst($site);
-                        }
-                        if (strpos($line, '[yturl]') !== false) {
-                            $urltext = substr($line, 8);
-                        }
-                        if (strpos($line, 'Destination') !== false) {
-                            $pos = strrpos($line, '/');
-                            $filename = $pos === false ? $line : substr($line, $pos + 1);
-                        }
-                        if (strpos($line, 'has already been downloaded') !==false) {
-                            $posEnd   = strpos($line, 'has already been downloaded');
-                            $posStart = strrpos($line, '/');
-                            $filename = $posStart === false ? $line : substr($line, $posStart + 1, $posEnd - 22);
-                            $jobstatus = "Cancelled (Already Downloaded)";
+                        if (strpos($line, '[debug] ') === false) {
+
+                            if (strpos($line, '[download] Downloading') !== false) {
+                                $listpos = substr($line, 29);
+                                $listpos = trim(substr($listpos, strpos($listpos, " of")+3));
+                            }
+                            if (strpos($line, '[download] Downloading playlist:') !== false) {
+                                $playlist = substr($line, 33);
+                            }
+                            $verylastline = $line;
+                            if (!$siteset) {
+                                $siteset = true;
+                                $site = explode(" ", $line)[0];
+                                $site = str_replace("[", "", $site);
+                                $site = str_replace("]", "", $site);
+                                $site = ucfirst($site);
+                            }
+                            if (strpos($line, '[yturl]') !== false) {
+                                $urltext = substr($line, 8);
+                            }
+                            if (strpos($line, 'Destination') !== false) {
+                                $pos = strrpos($line, '/');
+                                $filename = $pos === false ? $line : substr($line, $pos + 1);
+                            }
+                            if (strpos($line, 'has already been downloaded') !==false) {
+                                $posEnd   = strpos($line, 'has already been downloaded');
+                                $posStart = strrpos($line, '/');
+                                $filename = $posStart === false ? $line : substr($line, $posStart + 1, $posEnd - 22);
+                                $jobstatus = "Cancelled (Already Downloaded)";
+                            }
                         }
                     }
                     fclose($handle);
@@ -361,7 +366,7 @@ class Downloader
 
         $fnp = str_replace("job_", "pid_", $fno);
         $ytcmd = trim($ytcmd);
-        $cmd = $ytcmd." > ".$GLOBALS['config']['logPath']."/".$fno." & echo $! > ".$GLOBALS['config']['logPath']."/".$fnp;
+        $cmd = $ytcmd." >> ".$GLOBALS['config']['logPath']."/".$fno." & echo $! > ".$GLOBALS['config']['logPath']."/".$fnp;
         passthru($cmd);
         file_put_contents($GLOBALS['config']['logPath']."/".$fnp, $ytcmd."\n", FILE_APPEND);
         file_put_contents($GLOBALS['config']['logPath']."/".$fnp, $urltext."\n", FILE_APPEND);
@@ -445,8 +450,9 @@ class Downloader
     {
         $suffix = "";
         $cmd = $this->config['youtubedlExe'];
+        $cmd .= " ".$this->config['youtubedlParameters'];
         $cmd .= " -o ".$this->download_path."/";
-        $cmd .= escapeshellarg("%(title)s-%(uploader)s.%(ext)s");
+        $cmd .= escapeshellarg($this->config['outputSubfolder']."/".$this->config['downloadFileName'].".%(ext)s");
         $cmd .= " ".$onedownload['dl_format'];
       
         if($onedownload['audio_only']) {
@@ -464,9 +470,17 @@ class Downloader
         $urltext = trim($urltext, ",");
         $cmd .= " --restrict-filenames"; // --restrict-filenames is for specials chars
         $cmd .= " --ignore-errors";
+        $cmd .= " ".$this->config["youteubedlParameters"];
         $logcmd = $cmd;
-        $cmd .= " > ".$this->config['logPath']."/".$fno." & echo $! > ".$this->config['logPath']."/".$fnp;
+        $cmd .= " >> ".$this->config['logPath']."/".$fno." 2>&1 & echo $! > ".$this->config['logPath']."/".$fnp;
+
+        // setting locale encoding to allow accented caracters into metadata
+        $locale = $this->config['encoding'];
+        setlocale(LC_ALL, $locale);
+        putenv('LC_ALL='.$locale);
+        // executing extraction
         passthru($cmd);
+
         file_put_contents($this->config['logPath']."/".$fnp, $logcmd."\n", FILE_APPEND);
         file_put_contents($this->config['logPath']."/".$fnp, $urltext."\n", FILE_APPEND);
     }

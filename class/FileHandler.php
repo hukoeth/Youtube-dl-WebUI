@@ -21,18 +21,20 @@ class FileHandler
 
         $folder = $this->get_downloads_folder().'/';
 
-        $dir_handle=opendir($folder);
-        while ($file = readdir($dir_handle)) {
-            if ($file != "." && $file != "..") {
-                if(preg_match('/^.*\.('.$this->videos_ext.')$/i',$file)) {
-                    $video = [];
-                    $video["name"] = str_replace($folder, "", $file);
-                    $video["size"] = $this->to_human_filesize(filesize($folder.$file));
-                    $videos[] = $video;
-                }
-            }
+        $Directory = new RecursiveDirectoryIterator($folder, FilesystemIterator::FOLLOW_SYMLINKS);
+        $Iterator = new RecursiveIteratorIterator($Directory);
+        $Regex = new RegexIterator($Iterator, '/^.*\.('.$this->videos_ext.')$/i', RecursiveRegexIterator::GET_MATCH);
+
+        foreach($Regex as $name => $file){
+            $video=[];
+            $video["name"] = str_replace($folder, "", $file[0]);
+            $video["size"] = $this->to_human_filesize(filesize($file[0]), 1);
+            $videos[]=$video;
         }
-        closedir($dir_handle);
+
+        usort($videos, function($a, $b) {
+            return $a['name'] <=> $b['name'];
+        });
 
         return $videos;
     }
@@ -47,22 +49,24 @@ class FileHandler
 
         $folder = $this->get_downloads_folder().'/';
 
-        $dir_handle=opendir($folder);
-        while ($file = readdir($dir_handle)) {
-            if ($file != "." && $file != "..") {
-                if(preg_match('/^.*\.('.$this->musics_ext.')$/i',$file)) {
-                    $music= [];
-                    //$music["name"] = str_replace($folder, "", $file);
-                    $music["name"] = $file;
-                    $music["size"] = $this->to_human_filesize(filesize($folder.$file));
-                    $musics[] = $music;
-                }
-            }
+        $Directory = new RecursiveDirectoryIterator($folder, FilesystemIterator::FOLLOW_SYMLINKS);
+        $Iterator = new RecursiveIteratorIterator($Directory);
+        $Regex = new RegexIterator($Iterator, '/^.*\.('.$this->musics_ext.')$/i', RecursiveRegexIterator::GET_MATCH);
+
+        foreach($Regex as $name => $file){
+            $music=[];
+            $music["name"] = str_replace($folder, "", $file[0]);
+            $music["size"] = $this->to_human_filesize(filesize($file[0]), 1);
+            $musics[]=$music;
         }
-        closedir($dir_handle);
+
+        usort($musics, function($a, $b) {
+            return $a['name'] <=> $b['name'];
+        });
 
         return $musics;
     }
+
 
     public function delete($id)
     {

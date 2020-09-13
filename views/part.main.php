@@ -17,42 +17,62 @@
     <div class="alert alert-warning" role="alert"><?php echo ($e); ?></div>
     <?php endforeach; ?>
 <?php endif; ?>
-        <form id="download-form" class="form-horizontal" action="index.php" method="post">          
+        <form id="download-form" class="form-horizontal" action="index.php" method="post">
+
           <div class="form-group">
+
             <div class="col-md-12">
               <input class="form-control" id="url" name="urls"<?php echo($urlvalue); ?> placeholder="Enter the URL to the video you want to download. If you want to enter more that one please separate with a comma." type="text">
             </div>
+
             <div class="col-md-12">
               <div style="text-align: center;" class="checkbox">
                 <button style="width: 300px;" type="submit" class="btn btn-primary">Download</button><br />
-                <label<?php echo($config['disableExtraction'] ? " style=\"display: none;\"" : ""); ?>>
-                  <input id="audio_convert" onclick="checkControls();"<?php echo($audio_check); ?>  type="checkbox" name="audio"> Convert to Audio
-                </label>
-                <label id="audio_group"<?php echo($audio_form_style); ?>>
-                  Audio Format:
-                  <select style="width: 75px;" name="audio_format" id="audio_format">
-                    <option value="mp3-high"<?php echo($_GET["audio_format"]=="mp3-high" ? " selected=\"selected\"" : ""); ?>>mp3 High Quality</option>
-                    <option value="mp3"<?php echo($_GET["audio_format"]=="mp3" ? " selected=\"selected\"" : ""); ?>>mp3</option>
-                    <option value="aac"<?php echo($_GET["audio_format"]=="aac" ? " selected=\"selected\"" : ""); ?>>aac</option>
-                    <option value="vorbis"<?php echo($_GET["audio_format"]=="vorbis" ? " selected=\"selected\"" : ""); ?>>vorbis</option>
-                    <option value="m4a"<?php echo($_GET["audio_format"]=="m4a" ? " selected=\"selected\"" : ""); ?>>m4a</option>
-                    <option value="opus"<?php echo($_GET["audio_format"]=="opus" ? " selected=\"selected\"" : ""); ?>>opus</option>
-                    <option value="wav"<?php echo($_GET["audio_format"]=="wav" ? " selected=\"selected\"" : ""); ?>>wav</option>
-                  </select>
-                </label>
-                <label id="video_group"<?php echo($video_form_style); ?>>
-                  Video Quality:
-                  <select style="width: 75px;" name="format" id="format">
-                    <option value="best"<?php echo($_GET["format"]=="best" ? " selected=\"selected\"" : ""); ?>>Best</option>
-                    <option value="worst"<?php echo($_GET["format"]=="worst" ? " selected=\"selected\"" : ""); ?>>Smallest</option>
-                  </select>
-                </label>
+
+                <span <?php echo($config['disableExtraction'] ? " style=\"display: none;\"" : ""); ?>>
+                  <input id="audio_convert" onclick="checkControls();"<?php echo($audio_check); ?> type="checkbox" name="audio"> Convert to Audio</label>
+                </span>
               </div>
+            </div>
+
+            <div class="col-md-12">
+              <div<?php echo($config['disableExtraction'] ? " style=\"display: none;\"" : ""); ?>>
+
+                  <div class="form -group" id="audio_group"  <?php echo($audio_form_style); ?>>
+                    <h6>
+                    <label class="control-label col-sm-6" for="audio_format">Audio Format:</label>
+                    <div class="col-sm-2">
+	              <select class="form-control input-sm" name="audio_format" id="audio_format">
+	                <option value="mp3-high"<?php echo($_GET["audio_format"]=="mp3-high" ? " selected=\"selected\"" : ""); ?>>mp3 High Quality</option>
+	                <option value="mp3"<?php echo($_GET["audio_format"]=="mp3" ? " selected=\"selected\"" : ""); ?>>mp3</option>
+	                <option value="aac"<?php echo($_GET["audio_format"]=="aac" ? " selected=\"selected\"" : ""); ?>>aac</option>
+	                <option value="vorbis"<?php echo($_GET["audio_format"]=="vorbis" ? " selected=\"selected\"" : ""); ?>>vorbis</option>
+	                <option value="m4a"<?php echo($_GET["audio_format"]=="m4a" ? " selected=\"selected\"" : ""); ?>>m4a</option>
+                        <option value="opus"<?php echo($_GET["audio_format"]=="opus" ? " selected=\"selected\"" : ""); ?>>opus</option>
+                        <option value="wav"<?php echo($_GET["audio_format"]=="wav" ? " selected=\"selected\"" : ""); ?>>wav</option>
+	              </select>
+                    </div>
+                    </h6>
+                  </div>
+
+                  <div class="form -group" id="video_group" <?php echo($video_form_style); ?>>
+                    <h6>
+                    <label class="control-label col-sm-6 text-small" for="video_format">Video Format:</label>
+                    <div class="col-sm-2">
+                      <select class="form-control input-sm" name="video_format" id="video_format">
+                        <option value="best"<?php echo($_GET["format"]=="best" ? " selected=\"selected\"" : ""); ?>>Best</option>
+                        <option value="worst"<?php echo($_GET["format"]=="worst" ? " selected=\"selected\"" : ""); ?>>Smallest</option>
+                      </select>
+                    </div>
+                    </h6>
+                  </div>
+               </div>
             </div>
           </div>
         </form>
       </div>
     </div>
+
     <div class="tab-pane fade" id="downloads">
       <div style="text-align: center;" class="row">
         <br /><br />
@@ -112,7 +132,8 @@
     <div class="tab-pane fade" id="videos">
       <br /><br />
       <h4 style="text-align: center;">Downloaded Videos</h4>
-      <table style="text-align: left;" class="table table-striped table-hover ">
+      <input class="form-control input-sm" id="searchDownloadedVideos" type="text" placeholder="Search...">
+      <table style="text-align: left;" class="table table-striped table-hover " id="tableDownloadedVideos">
         <thead>
           <tr>
             <th style="min-width:800px; height:35px">File</th>
@@ -136,7 +157,8 @@
     <div class="tab-pane fade" id="music">
       <br /><br />
       <h4 style="text-align: center;">Downloaded Music</h4>
-      <table style="text-align: left;" class="table table-striped table-hover ">
+      <input class="form-control input-sm" id="searchDownloadedMusic" type="text" placeholder="Search...">
+      <table style="text-align: left;" class="table table-striped table-hover " id="tableDownloadedMusic">
         <thead>
           <tr>
             <th style="min-width:800px; height:35px">File</th>
@@ -169,5 +191,20 @@
 
   var hash = window.location.hash;
   $('#mainnav a[href="' + hash + '"]').tab('show');
+
+  $("#searchDownloadedMusic").on("keyup", function() {
+    var value = $(this).val().toLowerCase();
+    $("#tableDownloadedMusic tr").filter(function() {
+      $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+    });
+  });
+
+  $("#searchDownloadedVideos").on("keyup", function() {
+    var value = $(this).val().toLowerCase();
+    $("#tableDownloadedVideos tr").filter(function() {
+      $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+    });
+  });
+
 </script>
  

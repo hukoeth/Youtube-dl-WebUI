@@ -118,7 +118,7 @@ function loadList()
                     var buttonWidth = "80px;";
                     if (data.logURL != "") {
                         buttonWidth = "60px;";
-                        htmlString.push("<a href=\""+data.logURL+"/"+data.finished[i].pid+"\" style=\"width: 40px;\" target=\"_blank\" class=\"btn btn-default btn-xs\">Log</a>");
+                        htmlString.push("<a href=\""+data.logURL+"/"+data.finished[i].pid+"\" style=\"width: 40px;\" target=\"_youtubedl_log\" class=\"btn btn-default btn-xs\">Log</a>");
                     }
                     htmlString.push("<a style=\"width: "+buttonWidth+"\" href=\"?restart="+data.finished[i].pid+"\" class=\"btn btn-success btn-xs\">Restart</a>");
                     htmlString.push("<a style=\"width: "+buttonWidth+"\" data-href=\"?clear="+data.finished[i].pid+"\" data-toggle=\"modal\" data-target=\"#confirm-delete\" class=\"btn btn-danger btn-xs\">Remove</a>");
@@ -155,6 +155,7 @@ function loadList()
                     htmlString.push("</tr>");
                 }
                 $('#videofiles').html(htmlString.join("\n"));
+                $('#searchDownloadedVideos').keyup();
             }
     
             var arrayLength = data.music.length;
@@ -171,6 +172,7 @@ function loadList()
                     htmlString.push("</tr>");
                 }
                 $('#musicfiles').html(htmlString.join("\n"));
+                $('#searchDownloadedMusic').keyup();
             }
         }, "json"
     );

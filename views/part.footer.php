@@ -19,6 +19,16 @@
           </tr>
           <tr>
             <td>
+              <b>Youtube-dl version:</b>
+            </td>
+            <td>
+                <?php $cmd = $GLOBALS['config']['youtubedlExe'];
+                $cmd .= " --version";
+                passthru($cmd); ?>
+            </td>
+          </tr>
+          <tr>
+            <td>
               <b>Download folder:</b>
             </td>
             <td>

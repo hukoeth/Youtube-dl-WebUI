@@ -59,6 +59,29 @@ return array(
   'outputFolder' => '/var/www/tubedl/download',
   
   /**
+   * This property allows to tidy your downloads into subfolders.
+   * Leave blank if you want to locate all your file at into the output
+   * folder.
+   * To sort your files by artist, choose
+   * 'outputSubFolder' => '%(artist)s'
+   */ 
+  'outputSubfolder' => '',
+
+  /**
+   * Choose the structure of the downloaded file name up to 
+   * the documentation of youtube-dl
+   * https://github.com/ytdl-org/youtube-dl/blob/master/README.md#output-template
+   * If youtube-dl has not extracted any value for the property 
+   * then it is replaced with NA
+   *
+   * example : the playlist index
+   * 'downloadFileName' => '%(playlist_index)s-%(title)s'
+   */
+  'downloadFileName' => '%(title)s',
+
+ 
+  
+  /**
    * The web accessible path to you download folder. This has to be a
    * relative path to the installation of Youtube-dl-webui.
    * If your download folder is not accessible through the web, leave
@@ -109,6 +132,25 @@ return array(
    * 'youtubedlExe' => '/usr/bin/youtube-dl'
    */
   'youtubedlExe' => '/usr/bin/youtube-dl',
+
+
+  /**
+   * Add command line arguments to your youtube-dl commands
+   * Take care of choosing arguments matching not only to video extraction but
+   * also to music extraction.
+   * The following example adds metadata to the downloaded file and
+   * specifies a peculiar cache dir
+   *
+   * 'youtubedlParameters' => '--add-metadata --cache-dir /tmp'
+   */
+  'youtubedlParameters' => '',
+
+  /**
+   * Default encoding when launching commands from PHP is ANSI C. 
+   * whether you want to handle accented strings, your need to specifiy 
+   * the encoding. For example fr_FR.UTF-8
+   */
+  'encoding' => '',
 
   /**
    * Specify if .part files should be kept when cliking on Stop All on
